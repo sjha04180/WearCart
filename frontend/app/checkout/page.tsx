@@ -144,17 +144,95 @@ export default function CheckoutPage() {
   }
 
   const handleRazorpayPayment = async (amount: number) => {
-    // ... (Existing Razorpay logic)
-    // kept simplified for brevity, assume similar to before
-    toast.info("Razorpay flow not active in Web3 demo mode")
+    if (!user) {
+      toast.error('Please login to pay with Card/UPI')
+      // For hacked demo, maybe allow guest? But backend needs customerId.
+      // We'll stick to requiring login for "Traditional" payment.
+      return
+    }
+
+    setLoading(true)
+    try {
+      // 1. Create Order
+      const { data: { data: order } } = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/payments/create-order`,
+        { amount: amount }
+      )
+
+      // 2. Options
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder', // Ensure this is in .env
+        amount: order.amount,
+        currency: order.currency,
+        name: "WearCart",
+        description: "Order Payment",
+        order_id: order.id,
+        handler: async function (response: any) {
+          // 3. Verify & Place Order
+          try {
+            const verifyRes = await axios.post(
+              `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/payments/verify`,
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              }
+            )
+
+            if (verifyRes.data.success) {
+              const orderItems = items.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity
+              }))
+
+              await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/sale-orders`,
+                {
+                  customerId: user.contact.id,
+                  items: orderItems,
+                  paymentMethod: 'razorpay',
+                  txHash: response.razorpay_payment_id
+                }
+              )
+
+              clearCart()
+              router.push('/orders')
+              toast.success("Payment Successful!")
+            }
+          } catch (err) {
+            console.error(err)
+            toast.error("Payment Verification Failed")
+          }
+        },
+        prefill: {
+          name: user?.name,
+          email: user?.email,
+          contact: user?.phone
+        },
+        theme: {
+          color: "#DC2626"
+        }
+      };
+
+      const rzp1 = new (window as any).Razorpay(options);
+      rzp1.on('payment.failed', function (response: any) {
+        toast.error(response.error.description);
+      });
+      rzp1.open();
+
+    } catch (error) {
+      console.error(error)
+      toast.error('Payment initiation failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePlaceOrder = async () => {
     if (paymentMethod === 'crypto') {
       handleCryptoPayment()
     } else {
-      // handleRazorpayPayment(total)
-      toast.info("Select Crypto for Web3 Demo")
+      handleRazorpayPayment(total)
     }
   }
 
@@ -219,11 +297,42 @@ export default function CheckoutPage() {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
                 <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+
+                {/* Coupon Code Input */}
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Coupon Code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="border rounded px-3 py-2 w-full"
+                    />
+                    <button
+                      onClick={validateCoupon}
+                      className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {validCoupon && (
+                    <p className="text-green-600 text-sm mt-1">
+                      Coupon applied: {validCoupon.discountPercentage}% off
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
                     <span>₹{subtotal.toFixed(2)}</span>
                   </div>
+                  {validCoupon && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount ({validCoupon.discountPercentage}%)</span>
+                      <span>-₹{discount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="border-t pt-2 flex justify-between font-bold text-lg">
                     <span>Total</span>
                     <span>{paymentMethod === 'crypto' ? `~ ${(total * 0.000005).toFixed(4)} ETH` : `₹${total.toFixed(2)}`}</span>
