@@ -27,12 +27,12 @@ WearCart is a cutting-edge **Hybrid E-commerce Platform** that bridges the gap b
 - **Backend**: Node.js, Express.js
 - **Database**: PostgreSQL (via Supabase)
 - **Smart Contract**: Solidity (Ethereum/Sepolia)
-- **Deployment**: Vercel (Frontend & Backend)
+- **Deployment**: Not currently hosted. Please see [SETUP.md](./SETUP.md) for local setup instructions.
 
 ## Project Structure
 
 ```
-ApparelDesk/
+WearCart/
 ├── backend/          # Express API + Database Logic
 │   ├── config/       # DB Connection (Supabase/Local)
 │   ├── models/       # Sequelize Models
@@ -46,7 +46,9 @@ ApparelDesk/
 
 ## Quick Start
 
-See [SETUP.md](./SETUP.md) for detailed installation and troubleshooting instructions.
+**NOTE:** This project is currently **not hosted**. You must set it up locally on your machine to test and evaluate it.
+
+Please verify that you have the **Prerequisites** installed and then follow the **[SETUP.md](./SETUP.md)** guide strictly to get the project running.
 
 ### Prerequisites
 - Node.js 18+
