@@ -43,7 +43,7 @@ This is a collaborative team project designed and built by:
 *   **Authentication**: JWT (JSON Web Tokens) with role-based access controls
 *   **Payment APIs**: Razorpay Node SDK
 
-### Smart Contracts (Blockchain Layer)
+### Smart Contracts (Blockchain Layer) 
 *   **Language**: Solidity (v0.8.19)
 *   **Networks**: Sepolia Testnet, Ethereum Mainnet
 
